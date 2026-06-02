@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Optional
+import bcrypt
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 
 # Configuration
@@ -11,8 +11,7 @@ SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_SECONDS = 300  # 5 minutes
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # FastAPI app
@@ -39,11 +38,11 @@ class UserInDB(User):
     hashed_password: str
 
 # Mock database
-# Password for admin: admin123
+# Password for admin: admin123  (bcrypt hashed)
 fake_users_db = {
     "admin": {
         "username": "admin",
-        "hashed_password": "$2b$12$qRfJ9O7LVEXBWk0Yr7T/K.YqOEJZRULWBqfvqQiCG6Y8SxUZKSVLe",  # admin123
+        "hashed_password": "$2b$12$q79bWwwbCtpTQ.PuGwqfSuBGwrjQzgtE.axzOCuKVXaiLJNDN4fni",  # admin123
         "disabled": False,
     }
 }
@@ -51,11 +50,11 @@ fake_users_db = {
 # Utility functions
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def get_user(username: str) -> Optional[UserInDB]:
     """Get user from database."""
